@@ -1,18 +1,42 @@
-from flask import Flask
-from datetime import datetime
-app = Flask(__name__)
+import os
+from flask import Flask, request, jsonify, send_from_directory
+from conversation import send_message
+from context import ContextStorage
 
-@app.route('/')
-def homepage():
-    the_time = datetime.now().strftime("%A, %d %b %Y %l:%M %p")
+app = Flask(__name__, static_folder='./build')
+
+context_storage = ContextStorage()
+
+@app.route('/test')
+def test():
 
     return """
     <h1>Hello heroku</h1>
-    <p>It is currently {time}.</p>
 
     <img src="http://loremflickr.com/600/400" />
-    """.format(time=the_time)
+    """
+
+# Serve React App
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    print('path',path)
+    if path != "" and os.path.exists("./build/" + path):
+        return send_from_directory('./build', path)
+    else:
+        return send_from_directory('./build', 'index.html')
+
+
+@app.route('/message', methods=['post'])
+def message():
+    data = request.get_json(silent=True)
+    context = context_storage.get_context(data['user_id'])
+    response = send_message(data['text'], context)
+    context_storage.set_context(data['user_id'], response['context'])
+    return jsonify(**response)
+
 
 if __name__ == '__main__':
-    app.run(debug=True, use_reloader=True)
-
+    app.run(
+        debug=os.environ.get("DEBUG", False),
+        use_reloader=True)

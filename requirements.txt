@@ -1,2 +1,4 @@
-Flask
-gunicorn
+watson-developer-cloud==0.26.1
+Flask==0.12.2
+python-dotenv==0.7.1
+gunicorn==19.8.1
